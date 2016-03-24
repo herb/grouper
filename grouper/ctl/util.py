@@ -3,7 +3,8 @@ import logging
 import re
 
 from grouper.constants import NAME_VALIDATION, USERNAME_VALIDATION
-from grouper.models import get_db_engine, Session
+from grouper.models import get_db_engine
+from grouper.session import Session
 from grouper.settings import settings
 from grouper.util import get_database_url
 

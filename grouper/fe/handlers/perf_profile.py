@@ -1,5 +1,5 @@
 from tornado.web import RequestHandler
-from grouper import perf_profile
+from grouper import perf_profile, session
 
 
 # Don't use GraphHandler here as we don't want to count
@@ -8,7 +8,7 @@ class PerfProfile(RequestHandler):
     def get(self, trace_uuid):
         from grouper.models import Session
         try:
-            flamegraph_svg = perf_profile.get_flamegraph_svg(Session(), trace_uuid)
+            flamegraph_svg = perf_profile.get_flamegraph_svg(session.Session(), trace_uuid)
         except perf_profile.InvalidUUID:
             pass
         else:

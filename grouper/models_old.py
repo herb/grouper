@@ -20,7 +20,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm import relationship, object_session
-from sqlalchemy.orm import sessionmaker, Session as _Session
 from sqlalchemy.sql import func, label, literal
 
 from .constants import (
@@ -30,6 +29,7 @@ from .constants import (
 )
 from .email_util import send_async_email
 from .plugin import get_plugins
+from .session import Session
 from .settings import settings
 
 
@@ -79,31 +79,6 @@ class AuditLogCategory(IntEnum):
 
     # periodic global audit related
     audit = 2
-
-
-class Session(_Session):
-    """ Custom session meant to utilize add on the model.
-
-        This Session overrides the add/add_all methods to prevent them
-        from being used. This is to for using the add methods on the
-        models themselves where overriding is available.
-    """
-
-    _add = _Session.add
-    _add_all = _Session.add_all
-    _delete = _Session.delete
-
-    def add(self, *args, **kwargs):
-        raise NotImplementedError("Use add method on models instead.")
-
-    def add_all(self, *args, **kwargs):
-        raise NotImplementedError("Use add method on models instead.")
-
-    def delete(self, *args, **kwargs):
-        raise NotImplementedError("Use delete method on models instead.")
-
-
-Session = sessionmaker(class_=Session)
 
 
 class Model(object):

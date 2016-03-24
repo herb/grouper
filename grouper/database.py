@@ -5,7 +5,8 @@ from time import sleep
 from expvar.stats import stats
 from sqlalchemy.exc import OperationalError
 
-from grouper.models import get_db_engine, Session
+from grouper.models import get_db_engine
+from grouper.session import Session
 from grouper.util import get_database_url
 
 
