@@ -1,5 +1,6 @@
 from grouper.fe.util import GrouperHandler
-from grouper.models import AuditLog, Group
+from grouper.models.audit_log import AuditLog
+from grouper.models.group import Group
 
 
 class GroupLeave(GrouperHandler):

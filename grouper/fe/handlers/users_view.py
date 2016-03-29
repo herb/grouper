@@ -1,5 +1,5 @@
 from grouper.fe.util import GrouperHandler
-from grouper.models import User
+from grouper.models.user import User
 
 
 class UsersView(GrouperHandler):

@@ -16,9 +16,9 @@ from grouper import perf_profile
 from grouper.constants import AUDIT_SECURITY, RESERVED_NAMES, USERNAME_VALIDATION
 from grouper.fe.settings import settings
 from grouper.graph import Graph
-from grouper.models import get_db_engine, User
-from grouper.session import Session
+from grouper.session import get_db_engine, Session
 from grouper.util import get_database_url
+from grouper.models.user import User
 
 
 class Alert(object):

@@ -3,8 +3,10 @@ from grouper import permissions
 from grouper.fe.forms import GroupPermissionRequestDropdownForm, GroupPermissionRequestTextForm
 from grouper.fe.settings import settings
 from grouper.fe.util import GrouperHandler, Alert
-from grouper.models import Group, OWNER_ROLE_INDICES, Permission
+from grouper.models_old import OWNER_ROLE_INDICES
 from grouper.permissions import get_grantable_permissions
+from grouper.models.group import Group
+from grouper.models.permission import Permission
 
 
 class GroupPermissionRequest(GrouperHandler):

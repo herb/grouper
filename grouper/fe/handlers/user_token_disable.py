@@ -1,5 +1,7 @@
 from grouper.fe.util import GrouperHandler
-from grouper.models import AuditLog, User, UserToken
+from grouper.models.audit_log import AuditLog
+from grouper.models.user import User
+from grouper.models.user_token import UserToken
 
 
 class UserTokenDisable(GrouperHandler):

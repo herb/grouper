@@ -1,5 +1,6 @@
 from grouper.fe.util import GrouperHandler
-from grouper.models import Group, REQUEST_STATUS_CHOICES, Request
+from grouper.models.group import Group
+from grouper.models.request import Request, REQUEST_STATUS_CHOICES
 
 
 class GroupRequests(GrouperHandler):

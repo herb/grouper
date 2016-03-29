@@ -20,7 +20,6 @@ from grouper.constants import (
         )
 from grouper.fe.forms import ValidateRegex
 import grouper.fe.util
-from grouper.models import AsyncNotification, Group, Permission, User
 from grouper.permissions import (
         get_grantable_permissions,
         get_owner_arg_list,
@@ -28,6 +27,10 @@ from grouper.permissions import (
         get_requests_by_owner,
         )
 from url_util import url
+from grouper.models.user import User
+from grouper.models.group import Group
+from grouper.models.permission import Permission
+from grouper.models.async_notification import AsyncNotification
 
 
 @pytest.fixture

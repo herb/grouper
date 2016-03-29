@@ -10,7 +10,7 @@ from grouper.audit import (
     assert_can_join, assert_controllers_are_auditors, get_audits, user_is_auditor,
     UserNotAuditor,
 )
-from grouper.models import AuditLog, AuditLogCategory
+from grouper.models.audit_log import AuditLog
 from url_util import url
 from util import add_member, grant_permission
 

@@ -1,16 +1,18 @@
 import pytest
 
-from grouper import models
 from grouper.api.routes import HANDLERS as API_HANDLERS
 from grouper.app import Application
 from grouper.constants import AUDIT_MANAGER, PERMISSION_AUDITOR
 from grouper.fe.routes import HANDLERS as FE_HANDLERS
 from grouper.fe.template_util import get_template_env
-from grouper.models import get_db_engine, User, Group, Permission
+from grouper.models.model_base import Model
 from grouper.graph import Graph
-from grouper.session import Session
+from grouper.session import get_db_engine, Session
 
 from util import add_member, grant_permission
+from grouper.models.user import User
+from grouper.models.group import Group
+from grouper.models.permission import Permission
 
 
 @pytest.fixture
@@ -111,14 +113,14 @@ def session(request, tmpdir):
     db_path = tmpdir.join("grouper.sqlite")
     db_engine = get_db_engine("sqlite:///%s" % db_path)
 
-    models.Model.metadata.create_all(db_engine)
+    Model.metadata.create_all(db_engine)
     Session.configure(bind=db_engine)
     session = Session()
 
     def fin():
         session.close()
         # Useful if testing against MySQL
-        # models.Model.metadata.drop_all(db_engine)
+        # models.model_base.Model.metadata.drop_all(db_engine)
     request.addfinalizer(fin)
 
     return session

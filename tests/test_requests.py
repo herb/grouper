@@ -1,7 +1,7 @@
 from fixtures import graph, groups, permissions, session, standard_graph, users
 
-from grouper.models import Group, Request, User
 from util import add_member
+from grouper.models.request import Request
 
 
 def test_basic_request(graph, groups, permissions, session, standard_graph, users):

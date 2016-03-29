@@ -1,5 +1,5 @@
 from grouper.fe.util import GrouperHandler
-from grouper.models import Request
+from grouper.models.request import Request
 
 
 class UserRequests(GrouperHandler):

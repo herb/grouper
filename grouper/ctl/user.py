@@ -2,7 +2,8 @@ import logging
 
 from grouper import public_key
 from grouper.ctl.util import ensure_valid_username, make_session
-from grouper.models import AuditLog, User
+from grouper.models.audit_log import AuditLog
+from grouper.models.user import User
 
 
 @ensure_valid_username

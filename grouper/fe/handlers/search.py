@@ -1,7 +1,8 @@
 from sqlalchemy import union_all
 from sqlalchemy.sql import label, literal
 from grouper.fe.util import GrouperHandler
-from grouper.models import Group, User
+from grouper.models.user import User
+from grouper.models.group import Group
 
 
 class Search(GrouperHandler):

@@ -6,7 +6,10 @@ from util import add_member
 
 from grouper.background import BackgroundThread
 from grouper.fe.settings import settings
-from grouper.models import AsyncNotification, AuditLog, Group, GroupEdge
+from grouper.models.audit_log import AuditLog
+from grouper.models.group import Group
+from grouper.models.group_edge import GroupEdge
+from grouper.models.async_notification import AsyncNotification
 
 
 @pytest.fixture

@@ -7,7 +7,9 @@ from fixtures import (
     users,
 )  # noqa
 
-from grouper.models import GROUP_EDGE_ROLES, Group, Permission
+from grouper.models.group import Group
+from grouper.models.group_edge import GROUP_EDGE_ROLES
+from grouper.models.permission import Permission
 
 
 def test_group_edge_roles_order_unchanged():

@@ -1,4 +1,30 @@
 from sqlalchemy.orm import sessionmaker, Session as _Session
+from sqlalchemy import create_engine
+import functools
+import logging
+
+
+def flush_transaction(method):
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        dryrun = kwargs.pop("dryrun", False)
+        try:
+            ret = method(self, *args, **kwargs)
+            if dryrun:
+                self.session.rollback()
+            else:
+                self.session.flush()
+        except Exception:
+            logging.exception("Transaction Failed. Rolling back.")
+            if self.session is not None:
+                self.session.rollback()
+            raise
+        return ret
+    return wrapper
+
+
+def get_db_engine(url):
+    return create_engine(url, pool_recycle=300)
 
 
 class Session(_Session):

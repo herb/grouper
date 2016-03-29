@@ -10,7 +10,10 @@ from grouper.constants import (
 )
 
 from grouper.ctl.main import main
-from grouper.models import Group, GROUP_EDGE_ROLES, Model, User
+from grouper.models.model_base import Model
+from grouper.models.user import User
+from grouper.models.group import Group
+from grouper.models.group_edge import GROUP_EDGE_ROLES
 
 
 noop = lambda *k: None

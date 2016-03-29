@@ -1,6 +1,7 @@
 from grouper.fe.forms import UsersPublicKeyForm
 from grouper.fe.util import ensure_audit_security, GrouperHandler
-from grouper.models import PublicKey, User
+from grouper.models.user import User
+from grouper.models.public_key import PublicKey
 
 
 class UsersPublicKey(GrouperHandler):

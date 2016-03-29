@@ -7,14 +7,12 @@ from grouper.constants import (
         USER_ADMIN,
         )
 from grouper.ctl.util import make_session
-from grouper.models import (
-        get_db_engine,
-        Group,
-        Model,
-        Permission,
-        )
+from grouper.models.model_base import Model
+from grouper.session import get_db_engine
 from grouper.settings import settings
 from grouper.util import get_database_url
+from grouper.models.group import Group
+from grouper.models.permission import Permission
 
 
 def sync_db_command(args):

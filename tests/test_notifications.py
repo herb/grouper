@@ -8,8 +8,8 @@ from fixtures import graph, session, users, groups, permissions
 from util import add_member, edit_member, revoke_member, grant_permission
 
 from grouper.email_util import process_async_emails
-from grouper.models import AsyncNotification
 from grouper.settings import settings
+from grouper.models.async_notification import AsyncNotification
 
 imp.load_source('grouper-api', 'bin/grouper-api')
 

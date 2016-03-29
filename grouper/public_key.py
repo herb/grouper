@@ -1,8 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 import sshpubkey
 from sshpubkey.exc import PublicKeyParseError  # noqa
-
-from .models import PublicKey
+from grouper.models.public_key import PublicKey
 
 
 class DuplicateKey(Exception):

@@ -11,9 +11,11 @@ from expvar.stats import stats
 from tornado.web import RequestHandler, HTTPError
 
 from ..constants import TOKEN_FORMAT
-from ..models import PublicKey, User, UserToken
 from ..session import Session
 from ..util import try_update
+from grouper.models.user import User
+from grouper.models.user_token import UserToken
+from grouper.models.public_key import PublicKey
 
 # if raven library around, pull in SentryMixin
 try:

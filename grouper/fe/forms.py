@@ -14,8 +14,8 @@ from wtforms import (
 from wtforms.validators import ValidationError
 from wtforms_tornado import Form
 
-from .. import constants
-from .. import models
+from grouper import constants
+from grouper.models.group_edge import GROUP_EDGE_ROLES
 
 
 class ValidateRegex(object):
@@ -163,7 +163,7 @@ class GroupJoinForm(Form):
         validators.DataRequired(),
     ], choices=[
         (role, role.title())
-        for role in models.GROUP_EDGE_ROLES
+        for role in GROUP_EDGE_ROLES
     ], default="member")
     reason = TextAreaField("Reason", [
         validators.DataRequired(),

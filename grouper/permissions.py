@@ -7,11 +7,17 @@ from grouper.constants import PERMISSION_ADMIN, PERMISSION_GRANT
 from grouper.email_util import send_email
 from grouper.fe.settings import settings
 from grouper.group import get_groups_by_user
-from grouper.models import (AuditLog, Comment, Counter, Group, Permission, PermissionMap,
-        PermissionRequest, PermissionRequestStatusChange)
-from grouper.models import OBJ_TYPES_IDX
+from grouper.models.audit_log import AuditLog
+from grouper.models.request_status_change import OBJ_TYPES_IDX
 from grouper.plugin import get_plugins
 from grouper.util import matches_glob
+from grouper.models.group import Group
+from grouper.models.counter import Counter
+from grouper.models.comment import Comment
+from grouper.models.permission import Permission
+from grouper.models.permission_request import PermissionRequest
+from grouper.models.permission_request_status_change import PermissionRequestStatusChange
+from grouper.models.permission_map import PermissionMap
 
 
 # represents all information we care about for a list of permission requests
@@ -310,7 +316,7 @@ def get_requests_by_owner(session, owner, status, limit, offset):
     Args:
         session(sqlalchemy.orm.session.Session): database session
         owner(models.User): model of user in question
-        status(models.REQUEST_STATUS_CHOICES): if not None, filter by particular status
+        status(REQUEST_STATUS_CHOICES): if not None, filter by particular status
         limit(int): how many results to return
         offset(int): the offset into the result set that should be applied
 
@@ -380,7 +386,7 @@ def update_request(session, request, user, new_status, comment):
         session(sqlalchemy.orm.session.Session): database session
         request(models.PermissionRequest): request to update
         user(models.User): user making update
-        new_status(models.REQUEST_STATUS_CHOICES): new status
+        new_status(REQUEST_STATUS_CHOICES): new status
         comment(str): comment to include with status change
 
     Raises:

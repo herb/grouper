@@ -3,8 +3,8 @@ from grouper.fe.handlers.user_disable import UserDisable
 from grouper.fe.handlers.user_enable import UserEnable
 from grouper.fe.util import GrouperHandler
 from grouper.graph import NoSuchUser
-from grouper.models import User
 from grouper.permissions import get_requests_by_owner
+from grouper.models.user import User
 
 
 class UserView(GrouperHandler):

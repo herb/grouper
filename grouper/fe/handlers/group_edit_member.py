@@ -2,7 +2,10 @@ from datetime import datetime
 from grouper.audit import assert_can_join, UserNotAuditor
 from grouper.fe.forms import GroupEditMemberForm
 from grouper.fe.util import GrouperHandler, Alert
-from grouper.models import Group, GroupEdge, OBJ_TYPES, User
+from grouper.models_old import OBJ_TYPES
+from grouper.models.user import User
+from grouper.models.group import Group
+from grouper.models.group_edge import GroupEdge
 
 
 class GroupEditMember(GrouperHandler):

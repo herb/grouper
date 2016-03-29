@@ -2,7 +2,9 @@ from grouper.audit import get_audits
 from grouper.constants import PERMISSION_AUDITOR
 from grouper.email_util import cancel_async_emails
 from grouper.fe.util import GrouperHandler
-from grouper.models import AUDIT_STATUS_CHOICES, Audit, AuditLog, AuditLogCategory
+from grouper.models.audit import Audit
+from grouper.models.audit_log import AuditLog, AuditLogCategory
+from grouper.models.audit_member import AUDIT_STATUS_CHOICES
 
 
 class AuditsComplete(GrouperHandler):
