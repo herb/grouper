@@ -2,13 +2,29 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, Text, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import label
-from grouper.models.group import Group
-from grouper.models.model_base import Model
+from grouper.models.group import Group, GroupEdge
+from grouper.models.model_base import Model, OBJ_TYPES_IDX
 from grouper.models.user import User
-from grouper.models.request_status_change import OBJ_TYPES_IDX, RequestStatusChange
-from grouper.models.group_edge import GroupEdge
 from grouper.models.counter import Counter
 from grouper.models.comment import Comment
+
+
+class RequestStatusChange(Model):
+
+    __tablename__ = "request_status_changes"
+
+    id = Column(Integer, primary_key=True)
+
+    request_id = Column(Integer, ForeignKey("requests.id"))
+    request = relationship(Request)
+
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user = relationship(User, foreign_keys=[user_id])
+
+    from_status = Column(Enum(*REQUEST_STATUS_CHOICES))
+    to_status = Column(Enum(*REQUEST_STATUS_CHOICES), nullable=False)
+
+    change_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 REQUEST_STATUS_CHOICES = {

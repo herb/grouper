@@ -210,7 +210,7 @@ def notify_edge_expiration(settings, session, edge):
     # send_async_email() from grouper.models
     from grouper.models.audit_log import AuditLog
     from grouper.models.group import Group
-    from grouper.models.RequestStatusChange import OBJ_TYPES_IDX
+    from grouper.models.model_base import OBJ_TYPES_IDX
     from grouper.models.User import User
 
     # TODO(rra): Arbitrarily use the first listed owner of the group from which membership expired

@@ -8,7 +8,7 @@ from grouper.email_util import send_email
 from grouper.fe.settings import settings
 from grouper.group import get_groups_by_user
 from grouper.models.audit_log import AuditLog
-from grouper.models.request_status_change import OBJ_TYPES_IDX
+from grouper.models.model_base import OBJ_TYPES_IDX
 from grouper.plugin import get_plugins
 from grouper.util import matches_glob
 from grouper.models.group import Group

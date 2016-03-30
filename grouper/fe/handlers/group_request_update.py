@@ -4,9 +4,8 @@ from grouper.fe.forms import GroupRequestModifyForm
 from grouper.fe.settings import settings
 from grouper.fe.util import GrouperHandler, Alert
 from grouper.models.audit_log import AuditLog
-from grouper.models.group import Group
+from grouper.models.group import Group, GroupEdge
 from grouper.models.request import Request, REQUEST_STATUS_CHOICES
-from grouper.models.group_edge import GroupEdge
 
 
 class GroupRequestUpdate(GrouperHandler):

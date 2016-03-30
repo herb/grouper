@@ -103,7 +103,7 @@ def get_template_env(package="grouper.fe", deployment_name="",
     # send_async_email() from grouper.models
     # TODO(herb) FIXME
     from grouper.models.group_edge import GROUP_EDGE_ROLES
-    from grouper.models.request_status_change import OBJ_TYPES_IDX
+    from grouper.models.models_base import OBJ_TYPES_IDX
 
     filters = {
         "print_date": print_date,

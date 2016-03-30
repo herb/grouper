@@ -1,10 +1,7 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, asc
-from grouper.models.audit_log import AuditLog
 from grouper.models.counter import Counter
-from grouper.models.group import Group
 from grouper.models.model_base import Model
-from grouper.models.permission_map import PermissionMap
 
 
 class Permission(Model):
@@ -48,6 +45,11 @@ class Permission(Model):
         '''
         Return a list of tuples: (Group object, argument).
         '''
+        # todo(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.group import Group
+        from grouper.models.permission_map import PermissionMap
+
         results = self.session.query(
             Group.groupname,
             PermissionMap.argument,
@@ -60,5 +62,7 @@ class Permission(Model):
         return results.all()
 
     def my_log_entries(self):
+        # avoid circular dependency ; ideally this method exists at a higher level of abstraction
+        from grouper.models.audit_log import AuditLog
 
         return AuditLog.get_entries(self.session, on_permission_id=self.id, limit=20)

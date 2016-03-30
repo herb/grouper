@@ -2,23 +2,128 @@ import logging
 import re
 from collections import OrderedDict
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Boolean, Enum, or_, union_all, desc
+from sqlalchemy import Column, Integer, String, Text, Boolean, Enum, or_, union_all, desc, ForeignKey, DateTime, SmallInteger, Index
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import aliased, relationship
 from sqlalchemy.sql import label, literal
 from grouper.constants import ARGUMENT_VALIDATION
-from grouper.models.audit_log import AuditLog
-from grouper.models.model_base import Model
-from grouper.models.user import User
-from grouper.models.group_edge import GROUP_EDGE_ROLES, OWNER_ROLE_INDICES, GroupEdge
+from grouper.models.model_base import Model, OBJ_TYPES_IDX
+from grouper.models.group_edge import GROUP_EDGE_ROLES, OWNER_ROLE_INDICES
 from grouper.models.audit import Audit
-from grouper.models.request import Request
-from grouper.models.request_status_change import OBJ_TYPES_IDX, RequestStatusChange
 import json
 from grouper.models.counter import Counter
-from grouper.models.comment import Comment
 from grouper.models.permission import Permission
-from grouper.models.permission_map import PermissionMap
+from grouper.models.async_notification import AsyncNotification
+from grouper.models.user import User
+import grouper.models.request
+
+
+class GroupEdge(Model):
+
+    __tablename__ = "group_edges"
+    __table_args__ = (
+        Index(
+            "group_member_idx",
+            "group_id", "member_type", "member_pk",
+            unique=True
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    group = relationship(Group, backref="edges", foreign_keys=[group_id])
+
+    member_type = Column(Integer, nullable=False)
+    member_pk = Column(Integer, nullable=False)
+
+    expiration = Column(DateTime)
+    active = Column(Boolean, default=False, nullable=False)
+    _role = Column(SmallInteger, default=0, nullable=False)
+
+    @hybrid_property
+    def role(self):
+        return GROUP_EDGE_ROLES[self._role]
+
+    @role.setter
+    def role(self, role):
+        prev_role = self._role
+        self._role = GROUP_EDGE_ROLES.index(role)
+
+        # Groups should always "member".
+        if not (OBJ_TYPES_IDX[self.member_type] == "User"):
+            return
+
+        # If ownership status is unchanged, no notices need to be adjusted.
+        if (self._role in OWNER_ROLE_INDICES) == (prev_role in OWNER_ROLE_INDICES):
+            return
+
+        recipient = User.get(self.session, pk=self.member_pk).username
+        expiring_supergroups = self.group.my_expiring_groups()
+        member_name = self.group.name
+
+        if role in ["owner", "np-owner"]:
+            # We're creating a new owner, who should find out when this group
+            # they now own loses its membership in larger groups.
+            for supergroup_name, expiration in expiring_supergroups:
+                AsyncNotification.add_expiration(self.session,
+                                                 expiration,
+                                                 group_name=supergroup_name,
+                                                 member_name=member_name,
+                                                 recipients=[recipient],
+                                                 member_is_user=False)
+        else:
+            # We're removing an owner, who should no longer find out when this
+            # group they no longer own loses its membership in larger groups.
+            for supergroup_name, _ in expiring_supergroups:
+                AsyncNotification.cancel_expiration(self.session,
+                                                    group_name=supergroup_name,
+                                                    member_name=member_name,
+                                                    recipients=[recipient])
+
+    def apply_changes(self, request):
+        changes = json.loads(request.changes)
+        for key, value in changes.items():
+            if key == 'expiration':
+                group_name = self.group.name
+                if OBJ_TYPES_IDX[self.member_type] == "User":
+                    # If affected member is a user, plan to notify that user.
+                    user = User.get(self.session, pk=self.member_pk)
+                    member_name = user.username
+                    recipients = [member_name]
+                    member_is_user = True
+                else:
+                    # Otherwise, affected member is a group, notify its owners.
+                    subgroup = Group.get(self.session, pk=self.member_pk)
+                    member_name = subgroup.groupname
+                    recipients = subgroup.my_owners_as_strings()
+                    member_is_user = False
+                if getattr(self, key, None) is not None:
+                    # Check for and remove pending expiration notification.
+                    AsyncNotification.cancel_expiration(self.session,
+                                                        group_name,
+                                                        member_name)
+                if value:
+                    expiration = datetime.strptime(value, "%m/%d/%Y")
+                    setattr(self, key, expiration)
+                    # Avoid sending notifications for expired edges.
+                    if expiration > datetime.utcnow():
+                        AsyncNotification.add_expiration(self.session,
+                                                         expiration,
+                                                         group_name,
+                                                         member_name,
+                                                         recipients=recipients,
+                                                         member_is_user=member_is_user)
+                else:
+                    setattr(self, key, None)
+            else:
+                setattr(self, key, value)
+
+    def __repr__(self):
+        return "%s(group_id=%s, member_type=%s, member_pk=%s)" % (
+            type(self).__name__, self.group_id,
+            OBJ_TYPES_IDX[self.member_type], self.member_pk
+        )
 
 
 def build_changes(edge, **updates):
@@ -82,6 +187,10 @@ class Group(Model):
                 user_or_group: A User/Group object of the member
                 reason: A comment on why this member should exist
         """
+        # todo(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.request import Request
+
         now = datetime.utcnow()
 
         logging.debug(
@@ -112,7 +221,7 @@ class Group(Model):
         ).add(self.session)
         self.session.flush()
 
-        request_status_change = RequestStatusChange(
+        request_status_change = grouper.models.request.RequestStatusChange(
             request=request,
             user_id=requester.id,
             to_status="actioned",
@@ -143,6 +252,10 @@ class Group(Model):
             permission: a Permission object being granted
             argument: must match constants.ARGUMENT_VALIDATION
         """
+        # todo(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.permission_map import PermissionMap
+
         if not re.match(ARGUMENT_VALIDATION, argument):
             raise ValueError('Permission argument does not match regex.')
 
@@ -162,6 +275,11 @@ class Group(Model):
             Any option that is not passed is not updated, and instead, the existing value for this
             user is kept.
         """
+        # TODO(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.audit_log import AuditLog
+        from grouper.models.request import Request
+
         now = datetime.utcnow()
         member_type = user_or_group.member_type
 
@@ -198,7 +316,7 @@ class Group(Model):
         ).add(self.session)
         self.session.flush()
 
-        request_status_change = RequestStatusChange(
+        request_status_change = grouper.models.request.RequestStatusChange(
             request=request,
             user_id=requester.id,
             to_status="actioned",
@@ -238,6 +356,10 @@ class Group(Model):
                 expiration: datetime object when membership should expire.
                 role: member/manager/owner/np-owner of the Group.
         """
+        # TODO(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.request import Request
+
         now = datetime.utcnow()
         member_type = user_or_group.member_type
 
@@ -277,7 +399,7 @@ class Group(Model):
         ).add(self.session)
         self.session.flush()
 
-        request_status_change = RequestStatusChange(
+        request_status_change = grouper.models.request.RequestStatusChange(
             request=request,
             user_id=requester.id,
             to_status=status,
@@ -300,6 +422,9 @@ class Group(Model):
         Counter.incr(self.session, "updates")
 
     def my_permissions(self):
+        # todo(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.permission_map import PermissionMap
 
         permissions = self.session.query(
             Permission.id,
@@ -315,6 +440,9 @@ class Group(Model):
         return permissions
 
     def my_users(self):
+        # todo(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.user import User
 
         now = datetime.utcnow()
         users = self.session.query(
@@ -336,6 +464,8 @@ class Group(Model):
         return users
 
     def my_log_entries(self):
+        # avoid circular dependency ; ideally this method exists at a higher level of abstraction
+        from grouper.models.audit_log import AuditLog
 
         return AuditLog.get_entries(self.session, on_group_id=self.id, limit=20)
 
@@ -442,6 +572,10 @@ class Group(Model):
         """Return the groups to which this group currently belongs but with an
         expiration date.
         """
+        # todo(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.comment import Comment
+
         now = datetime.utcnow()
         groups = self.session.query(
             label("name", Group.groupname),
@@ -458,6 +592,10 @@ class Group(Model):
         return groups
 
     def my_requests(self, status=None, user=None):
+        # TODO(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.request import Request
+        from grouper.models.user import User
 
         members = self.session.query(
             label("type", literal(1)),
@@ -484,11 +622,11 @@ class Group(Model):
             Request.on_behalf_obj_type == members.c.type,
             Request.requesting_id == self.id,
             Request.requester_id == User.id,
-            Request.id == RequestStatusChange.request_id,
-            RequestStatusChange.from_status == None,
+            Request.id == grouper.models.request.RequestStatusChange.request_id,
+            grouper.models.request.RequestStatusChange.from_status == None,
             GroupEdge.id == Request.edge_id,
             Comment.obj_type == 3,
-            Comment.obj_pk == RequestStatusChange.id
+            Comment.obj_pk == grouper.models.request.RequestStatusChange.id
         )
 
         if status:

@@ -11,8 +11,7 @@ from grouper.email_util import notify_edge_expiration, process_async_emails
 from grouper.perf_profile import prune_old_traces
 from grouper.session import Session, get_db_engine
 from grouper.util import get_database_url
-from grouper.models.group import Group
-from grouper.models.group_edge import GroupEdge
+from grouper.models.group import Group, GroupEdge
 
 
 class BackgroundThread(Thread):

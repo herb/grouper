@@ -1,5 +1,9 @@
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import object_session
-from grouper.models_old import OBJ_TYPES
+
+
+OBJ_TYPES_IDX = ("User", "Group", "Request", "RequestStatusChange", "PermissionRequestStatusChange")
+OBJ_TYPES = {obj_type: idx for idx, obj_type in enumerate(OBJ_TYPES_IDX)}
 
 
 class Model(object):

@@ -1,24 +1,23 @@
 import re
 from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, Boolean, or_, asc
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import label, literal
+
 from grouper.constants import PERMISSION_GRANT, PERMISSION_CREATE, MAX_NAME_LENGTH, PERMISSION_VALIDATION, PERMISSION_ADMIN, GROUP_ADMIN, USER_ADMIN
-from grouper.models.audit_log import AuditLog
-from grouper.models.model_base import Model
-from grouper.plugin import get_plugins
-from grouper.models.group import Group
-from grouper.models.group_edge import APPROVER_ROLE_INDICIES, GROUP_EDGE_ROLES, GroupEdge, OWNER_ROLE_INDICES
 from grouper.models.audit import Audit
-from grouper.models.request import Request
-from grouper.models.request_status_change import RequestStatusChange
 from grouper.models.counter import Counter
-from grouper.models.comment import Comment
-from grouper.models.user_metadata import UserMetadata
-from grouper.models.public_key import PublicKey
+from grouper.models.group_edge import APPROVER_ROLE_INDICIES, GROUP_EDGE_ROLES, OWNER_ROLE_INDICES
+from grouper.models.model_base import Model
 from grouper.models.permission import Permission
 from grouper.models.permission_map import PermissionMap
+from grouper.models.public_key import PublicKey
+from grouper.models.user_metadata import UserMetadata
+from grouper.plugin import get_plugins
+import grouper.models.group
+import grouper.models.request
 
 
 class User(Model):
@@ -66,6 +65,9 @@ class User(Model):
         Returns:
             bool: True or False on whether or not they can manage.
         """
+        # avoid circular dependency ; ideally this method exists at a higher level of abstraction
+        from grouper.models.group import Group
+
         if not group:
             return False
         members = group.my_members()
@@ -83,6 +85,8 @@ class User(Model):
         """
         # avoid circular dependency
         from grouper.group import get_groups_by_user
+        from grouper.models.group import Group
+
         if not preserve_membership:
             for group, group_edge in get_groups_by_user(self.session, self):
                 group_obj = self.session.query(Group).filter_by(
@@ -187,6 +191,8 @@ class User(Model):
         return keys.all()
 
     def my_log_entries(self):
+        # avoid circular dependency ; ideally this method exists at a higher level of abstraction
+        from grouper.models.audit_log import AuditLog
 
         return AuditLog.get_entries(self.session, involve_user_id=self.id, limit=20)
 
@@ -214,6 +220,9 @@ class User(Model):
         return False
 
     def my_permissions(self):
+        # avoid circular dependency ; ideally this method exists at a higher level of abstraction
+        from grouper.models.group import Group
+
 
         # TODO: Make this walk the tree, so we can get a user's entire set of permissions.
         now = datetime.utcnow()
@@ -225,15 +234,15 @@ class User(Model):
         ).filter(
             PermissionMap.permission_id == Permission.id,
             PermissionMap.group_id == Group.id,
-            GroupEdge.group_id == Group.id,
-            GroupEdge.member_pk == self.id,
-            GroupEdge.member_type == 0,
-            GroupEdge.active == True,
+            grouper.models.group.GroupEdge.group_id == Group.id,
+            grouper.models.group.GroupEdge.member_pk == self.id,
+            grouper.models.group.GroupEdge.member_type == 0,
+            grouper.models.group.GroupEdge.active == True,
             self.enabled == True,
             Group.enabled == True,
             or_(
-                GroupEdge.expiration > now,
-                GroupEdge.expiration == None
+                grouper.models.group.GroupEdge.expiration > now,
+                grouper.models.group.GroupEdge.expiration == None
             )
         ).order_by(
             asc("name"), asc("argument"), asc("groupname")
@@ -291,6 +300,12 @@ class User(Model):
 
     def my_requests_aggregate(self):
         """Returns all pending requests for this user to approve across groups."""
+        # todo(cir_dep): avoid circular dependency ; ideally this method lives
+        # at a higher level of abstraction
+        from grouper.models.comment import Comment
+        from grouper.models.group import Group
+        from grouper.models.request import Request
+
         members = self.session.query(
             label("type", literal(1)),
             label("id", Group.id),
@@ -306,23 +321,23 @@ class User(Model):
             label("id", Group.id),
             label("name", Group.groupname),
         ).filter(
-            GroupEdge.group_id == Group.id,
-            GroupEdge.member_pk == self.id,
-            GroupEdge.active == True,
-            GroupEdge._role.in_(APPROVER_ROLE_INDICIES),
+            grouper.models.group.GroupEdge.group_id == Group.id,
+            grouper.models.group.GroupEdge.member_pk == self.id,
+            grouper.models.group.GroupEdge.active == True,
+            grouper.models.group.GroupEdge._role.in_(APPROVER_ROLE_INDICIES),
             self.enabled == True,
             Group.enabled == True,
             or_(
-                GroupEdge.expiration > now,
-                GroupEdge.expiration == None,
+                grouper.models.group.GroupEdge.expiration > now,
+                grouper.models.group.GroupEdge.expiration == None,
             )
         ).subquery()
 
         requests = self.session.query(
             Request.id,
             Request.requested_at,
-            GroupEdge.expiration,
-            label("role", GroupEdge._role),
+            grouper.models.group.GroupEdge.expiration,
+            label("role", grouper.models.group.GroupEdge._role),
             Request.status,
             label("requester", User.username),
             label("type", members.c.type),
@@ -336,16 +351,19 @@ class User(Model):
             Request.requesting_id == groups.c.id,
             Request.requester_id == User.id,
             Request.status == "pending",
-            Request.id == RequestStatusChange.request_id,
-            RequestStatusChange.from_status == None,
-            GroupEdge.id == Request.edge_id,
+            Request.id == grouper.models.request.RequestStatusChange.request_id,
+            grouper.models.request.RequestStatusChange.from_status == None,
+            grouper.models.group.GroupEdge.id == Request.edge_id,
             Comment.obj_type == 3,
-            Comment.obj_pk == RequestStatusChange.id,
+            Comment.obj_pk == grouper.models.request.RequestStatusChange.id,
         )
 
         return requests
 
     def my_open_audits(self):
+        # avoid circular dependency ; ideally this method exists at a higher level of abstraction
+        from grouper.models.group import Group
+
         self.session.query(Audit).filter(Audit.complete == False)
         now = datetime.utcnow()
         return self.session.query(
@@ -355,15 +373,15 @@ class User(Model):
         ).filter(
             Audit.group_id == Group.id,
             Audit.complete == False,
-            GroupEdge.group_id == Group.id,
-            GroupEdge.member_pk == self.id,
-            GroupEdge.member_type == 0,
-            GroupEdge.active == True,
-            GroupEdge._role.in_(OWNER_ROLE_INDICES),
+            grouper.models.group.GroupEdge.group_id == Group.id,
+            grouper.models.group.GroupEdge.member_pk == self.id,
+            grouper.models.group.GroupEdge.member_type == 0,
+            grouper.models.group.GroupEdge.active == True,
+            grouper.models.group.GroupEdge._role.in_(OWNER_ROLE_INDICES),
             self.enabled == True,
             Group.enabled == True,
             or_(
-                GroupEdge.expiration > now,
-                GroupEdge.expiration == None,
+                grouper.models.group.GroupEdge.expiration > now,
+                grouper.models.group.GroupEdge.expiration == None,
             )
         ).all()

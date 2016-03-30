@@ -1,9 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, Enum
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
-from grouper.models.group import Group
 from grouper.models.model_base import Model
-from grouper.models.user import User
 
 
 AUDIT_STATUS_CHOICES = {"pending", "approved", "remove"}
@@ -29,6 +27,11 @@ class AuditMember(Model):
 
     @hybrid_property
     def member(self):
+        # prevent the circular dependency ; ideally this method exists at a
+        # higher level of abstraction
+        from grouper.models.group import Group
+        from grouper.models.user import User
+
         if self.edge.member_type == 0:  # User
             return User.get(self.session, pk=self.edge.member_pk)
         elif self.edge.member_type == 1:  # Group

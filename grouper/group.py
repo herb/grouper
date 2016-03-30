@@ -2,8 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import or_
 
-from grouper.models.group import Group
-from grouper.models.group_edge import GroupEdge
+from grouper.models.group import Group, GroupEdge
 
 
 def get_all_groups(session):
