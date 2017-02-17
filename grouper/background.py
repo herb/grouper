@@ -90,10 +90,8 @@ class BackgroundThread(Thread):
             session (Session): database session
         """
         now = datetime.utcnow()
-        graph = Graph()
         exp_days = timedelta(days=settings.nonauditor_expiration_days)
-        # Hack to ensure the graph is loaded before we access it
-        graph.update_from_db(session)
+
         # TODO(tyleromeara): replace with graph call
         for group in get_audited_groups(session):
             members = group.my_members()
